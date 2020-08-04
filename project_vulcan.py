@@ -21,7 +21,7 @@ def main():
     st.header("Project Vulcan")
     st.subheader("Filter Selection")
     st.sidebar.title("Settings")
-    st.set_option('deprecation.showfileUploaderEncoding', False)
+    st.set_option("deprecation.showfileUploaderEncoding", False)
 
     uploaded_file = st.sidebar.file_uploader("Choose a csv file...", type="csv")
     if uploaded_file is not None:
@@ -41,9 +41,13 @@ def main():
         dictionary = dict(zip(keys, values))
         st.write("Dictionary of selected items", dictionary)
         if st.checkbox("Show Selected Data and stats"):
-            test = show_data(data, dictionary, indicator)
-            test = test[[fix] + keys + [str(indicator)]]
-            st.write(test)
+            if not dictionary:
+                test = data[[fix] + [str(indicator)]]
+                st.write(test)
+            else:
+                test = show_data(data, dictionary, indicator)
+                test = test[[fix] + keys + [str(indicator)]]
+                st.write(test)
             st.write(
                 "% of NA values in the given column",
                 (test[indicator].isna().sum() / test[indicator].count()) * 100,
@@ -51,7 +55,7 @@ def main():
             st.write("Min value of indicator", test[indicator].min())
             st.write("Max value of indicator", test[indicator].max())
             st.write("Column data type", test[indicator].dtype)
-        # sns.boxplot(y = indicator,data = df)
+    # sns.boxplot(y = indicator,data = df)
         # st.write('Outliers')
         # st.pyplot()   
         if st.checkbox("Show Raw Data"):
