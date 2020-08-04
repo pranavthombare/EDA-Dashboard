@@ -21,6 +21,7 @@ def main():
     st.header("Project Vulcan")
     st.subheader("Filter Selection")
     st.sidebar.title("Settings")
+    st.set_option('deprecation.showfileUploaderEncoding', False)
 
     uploaded_file = st.sidebar.file_uploader("Choose a csv file...", type="csv")
     if uploaded_file is not None:
@@ -29,20 +30,30 @@ def main():
 
         map_df = st.cache(gpd.read_file)("shape_files/" + str(fp))
 
-        filters = st.multiselect("Select columns", data.columns)
+        keys = st.multiselect("Select columns", data.columns)
+        fix = st.selectbox("Set index column",data.columns)
 
-        filter_list = []
-        for item in filters:
-            filter_list.append(st.sidebar.selectbox("Choose one", data[item].unique()))
+        values = []
+        for item in keys:
+            values.append(st.sidebar.selectbox("Choose one", data[item].unique()))
         indicator = st.sidebar.selectbox("Choose indicator", list(data.columns))
 
-        dictionary = dict(zip(filters, filter_list))
+        dictionary = dict(zip(keys, values))
         st.write("Dictionary of selected items", dictionary)
-        if st.checkbox("Show Selected Data"):
+        if st.checkbox("Show Selected Data and stats"):
             test = show_data(data, dictionary, indicator)
-            test = test[filters + [str(indicator)]]
+            test = test[[fix] + keys + [str(indicator)]]
             st.write(test)
-
+            st.write(
+                "% of NA values in the given column",
+                (test[indicator].isna().sum() / test[indicator].count()) * 100,
+            )
+            st.write("Min value of indicator", test[indicator].min())
+            st.write("Max value of indicator", test[indicator].max())
+            st.write("Column data type", test[indicator].dtype)
+        # sns.boxplot(y = indicator,data = df)
+        # st.write('Outliers')
+        # st.pyplot()   
         if st.checkbox("Show Raw Data"):
             st.write("Raw Data", data)
     else:
