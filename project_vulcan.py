@@ -6,6 +6,8 @@ from timeit import default_timer as timer
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
+import altair as alt
 
 # Streamlit
 import streamlit as st
@@ -18,46 +20,38 @@ def show_data(data, dictionary, indicator):
 
 
 def main():
-    st.header("Project Vulcan")
-    st.subheader("Filter Selection")
+    st.header("EDA Dashboard")
     st.sidebar.title("Settings")
     st.set_option("deprecation.showfileUploaderEncoding", False)
 
     uploaded_file = st.sidebar.file_uploader("Choose a csv file...", type="csv")
     if uploaded_file is not None:
+        # We load the csv file.
         data = pd.read_csv(uploaded_file)
-        fp = st.sidebar.selectbox("Select shapefile ", os.listdir("shape_files/"))
 
-        map_df = st.cache(gpd.read_file)("shape_files/" + str(fp))
+        # Select a column to get the stats for.
+        indicator = st.sidebar.selectbox("Choose a column", list(data.columns))
+        st.subheader(f"Analysis of the column: {indicator}")
 
-        keys = st.multiselect("Select columns", data.columns)
-        fix = st.selectbox("Set index column",data.columns)
+        # We need to fix a column to set it as an index.
+        freeze = st.sidebar.selectbox("Choose a column to freeze", list(data.columns))
+        
+        # And now we print the stats of the column
+        st.write("Column data type", data[indicator].dtype)
+        st.write("The number of items in the selected columns = ",data[indicator].count())
 
-        values = []
-        for item in keys:
-            values.append(st.sidebar.selectbox("Choose one", data[item].unique()))
-        indicator = st.sidebar.selectbox("Choose indicator", list(data.columns))
-
-        dictionary = dict(zip(keys, values))
-        st.write("Dictionary of selected items", dictionary)
-        if st.checkbox("Show Selected Data and stats"):
-            if not dictionary:
-                test = data[[fix] + [str(indicator)]]
-                st.write(test)
-            else:
-                test = show_data(data, dictionary, indicator)
-                test = test[[fix] + keys + [str(indicator)]]
-                st.write(test)
-            st.write(
-                "% of NA values in the given column",
-                (test[indicator].isna().sum() / test[indicator].count()) * 100,
-            )
-            st.write("Min value of indicator", test[indicator].min())
-            st.write("Max value of indicator", test[indicator].max())
-            st.write("Column data type", test[indicator].dtype)
-    # sns.boxplot(y = indicator,data = df)
-        # st.write('Outliers')
-        # st.pyplot()   
+        # More stats depending on the column type. 
+        # Doesn't makes sense to calculate mean for "object" type column
+        if (data[indicator].dtype == "int64" or data[indicator].dtype == "float64"):
+            st.write("The max value in the selected column is = ",data[indicator].max())
+            st.write("The min value in the selected column is = ",data[indicator].min())
+            st.write("The mean of the selected column is = ",data[indicator].sum()/data[indicator].count())
+            
+            # Now we select only 2 rows: the index column and the column we need stats for
+            subset = data[[freeze,indicator]]
+            vis = alt.Chart(subset).mark_bar().encode(x=freeze, y=indicator)
+            st.altair_chart(vis)
+ 
         if st.checkbox("Show Raw Data"):
             st.write("Raw Data", data)
     else:
